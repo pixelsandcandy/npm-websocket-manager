@@ -1,0 +1,23 @@
+{
+  "name": "websocket-manager",
+  "version": "1.0.0",
+  "description": "For managing internal and external Websocket connections",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/pixelsandcandy/npm-websocket-manager.git"
+  },
+  "keywords": [
+    "websockets",
+    "sockets"
+  ],
+  "author": "Christopher Miles <smile@christophermil.es> (http://christophermil.es)",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/pixelsandcandy/npm-websocket-manager/issues"
+  },
+  "homepage": "https://github.com/pixelsandcandy/npm-websocket-manager#readme"
+}
