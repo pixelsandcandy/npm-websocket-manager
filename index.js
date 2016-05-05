@@ -390,4 +390,4 @@ WebsocketManager = {
 
 };
 
-exports = WebsocketManager;
+module.exports = WebsocketManager;
