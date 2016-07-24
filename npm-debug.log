@@ -1,0 +1,95 @@
+0 info it worked if it ends with ok
+1 verbose cli [ 'node', '/usr/local/bin/npm', 'publish' ]
+2 info using npm@2.7.3
+3 info using node@v0.12.1
+4 verbose publish [ '.' ]
+5 silly cache add args [ '.', null ]
+6 verbose cache add spec .
+7 silly cache add parsed spec { raw: '.',
+7 silly cache add   scope: null,
+7 silly cache add   name: null,
+7 silly cache add   rawSpec: '.',
+7 silly cache add   spec: '/Users/Stardust/Documents/GitHub/npm-websocket-manager',
+7 silly cache add   type: 'directory' }
+8 verbose addLocalDirectory /Users/Stardust/.npm/websocket-manager/1.0.1/package.tgz not in flight; packing
+9 verbose tar pack [ '/Users/Stardust/.npm/websocket-manager/1.0.1/package.tgz',
+9 verbose tar pack   '/Users/Stardust/Documents/GitHub/npm-websocket-manager' ]
+10 verbose tarball /Users/Stardust/.npm/websocket-manager/1.0.1/package.tgz
+11 verbose folder /Users/Stardust/Documents/GitHub/npm-websocket-manager
+12 info prepublish websocket-manager@1.0.1
+13 verbose addLocalTarball adding from inside cache /Users/Stardust/.npm/websocket-manager/1.0.1/package.tgz
+14 silly cache afterAdd websocket-manager@1.0.1
+15 verbose afterAdd /Users/Stardust/.npm/websocket-manager/1.0.1/package/package.json not in flight; writing
+16 verbose afterAdd /Users/Stardust/.npm/websocket-manager/1.0.1/package/package.json written
+17 silly publish { name: 'websocket-manager',
+17 silly publish   version: '1.0.1',
+17 silly publish   description: 'For managing internal and external Websocket connections',
+17 silly publish   main: 'index.js',
+17 silly publish   scripts: { test: 'echo "Error: no test specified" && exit 1' },
+17 silly publish   repository:
+17 silly publish    { type: 'git',
+17 silly publish      url: 'git+https://github.com/pixelsandcandy/npm-websocket-manager.git' },
+17 silly publish   keywords: [ 'websockets', 'sockets' ],
+17 silly publish   author:
+17 silly publish    { name: 'Christopher Miles',
+17 silly publish      email: 'smile@christophermil.es',
+17 silly publish      url: 'http://christophermil.es' },
+17 silly publish   license: 'ISC',
+17 silly publish   bugs: { url: 'https://github.com/pixelsandcandy/npm-websocket-manager/issues' },
+17 silly publish   homepage: 'https://github.com/pixelsandcandy/npm-websocket-manager#readme',
+17 silly publish   readme: '# npm-websocket-manager\nFor managing internal and external Websocket connections\n',
+17 silly publish   readmeFilename: 'README.md',
+17 silly publish   gitHead: 'e724be424a33b312921554fd435384e70f2dfd80',
+17 silly publish   _id: 'websocket-manager@1.0.1',
+17 silly publish   _shasum: '0d89271bd0ce94001fb4f57e8b7e6791d104189d',
+17 silly publish   _from: '.' }
+18 silly mapToRegistry name websocket-manager
+19 silly mapToRegistry using default registry
+20 silly mapToRegistry registry https://registry.npmjs.org/
+21 silly mapToRegistry uri https://registry.npmjs.org/websocket-manager
+22 verbose publish registryBase https://registry.npmjs.org/
+23 silly publish uploading /Users/Stardust/.npm/websocket-manager/1.0.1/package.tgz
+24 verbose request uri https://registry.npmjs.org/websocket-manager
+25 verbose request sending authorization for write operation
+26 info attempt registry request try #1 at 4:34:53 PM
+27 verbose request using bearer token for auth
+28 verbose request id 54e2937ed602a9e4
+29 http request PUT https://registry.npmjs.org/websocket-manager
+30 http 403 https://registry.npmjs.org/websocket-manager
+31 verbose headers { 'content-type': 'application/json',
+31 verbose headers   'cache-control': 'max-age=300',
+31 verbose headers   'content-length': '95',
+31 verbose headers   'accept-ranges': 'bytes',
+31 verbose headers   date: 'Sun, 24 Jul 2016 20:34:53 GMT',
+31 verbose headers   via: '1.1 varnish',
+31 verbose headers   connection: 'keep-alive',
+31 verbose headers   'x-served-by': 'cache-jfk1033-JFK',
+31 verbose headers   'x-cache': 'MISS',
+31 verbose headers   'x-cache-hits': '0',
+31 verbose headers   'x-timer': 'S1469392493.168821,VS0,VE603',
+31 verbose headers   vary: 'Accept-Encoding' }
+32 verbose request invalidating /Users/Stardust/.npm/registry.npmjs.org/websocket-manager on PUT
+33 error publish Failed PUT 403
+34 verbose stack Error: "You cannot publish over the previously published version 1.0.1." : websocket-manager
+34 verbose stack     at CachingRegistryClient.<anonymous> (/usr/local/lib/node_modules/npm/node_modules/npm-registry-client/lib/request.js:254:14)
+34 verbose stack     at Request._callback (/usr/local/lib/node_modules/npm/node_modules/npm-registry-client/lib/request.js:178:14)
+34 verbose stack     at Request.self.callback (/usr/local/lib/node_modules/npm/node_modules/request/request.js:344:22)
+34 verbose stack     at Request.emit (events.js:110:17)
+34 verbose stack     at Request.<anonymous> (/usr/local/lib/node_modules/npm/node_modules/request/request.js:1239:14)
+34 verbose stack     at Request.emit (events.js:129:20)
+34 verbose stack     at IncomingMessage.<anonymous> (/usr/local/lib/node_modules/npm/node_modules/request/request.js:1187:12)
+34 verbose stack     at IncomingMessage.emit (events.js:129:20)
+34 verbose stack     at _stream_readable.js:908:16
+34 verbose stack     at process._tickCallback (node.js:355:11)
+35 verbose statusCode 403
+36 verbose pkgid websocket-manager
+37 verbose cwd /Users/Stardust/Documents/GitHub/npm-websocket-manager
+38 error Darwin 14.5.0
+39 error argv "node" "/usr/local/bin/npm" "publish"
+40 error node v0.12.1
+41 error npm  v2.7.3
+42 error code E403
+43 error "You cannot publish over the previously published version 1.0.1." : websocket-manager
+44 error If you need help, you may report this error at:
+44 error     <https://github.com/npm/npm/issues>
+45 verbose exit [ 1, true ]

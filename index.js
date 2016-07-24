@@ -117,7 +117,7 @@ WebsocketManager = {
 				if ( msg.indexOf( this.externalKey ) === -1 ) return false;
 				else return true;
 			} else {
-				return false;
+				return true;
 			}
 		}
 
