@@ -477,7 +477,7 @@ WebsocketManager = {
 		if ( valid && !connecting ) {
 			var source = this.getSourceFromSocket( ws );
 			if ( source.onmessage ) {
-				source.onmessage( msg, ws );
+				source.onmessage( msg, ws, this.getUID( ws )  );
 			}
 		}
 
