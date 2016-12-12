@@ -22,8 +22,12 @@ Array.prototype.remove = function() {
 
 WebsocketManager = {
 	groups: [],
+	ips: [],
 	sockets: [],
+	socketsIP: [],
 	sources: [],
+
+	channels: [],
 
 	externalKey: null,
 	origin: null,
@@ -147,10 +151,23 @@ WebsocketManager = {
 
 	addGroup: function( name ){
 		if ( this.groups[name] === undefined ) this.groups[name] = [];
+		if ( this.ips[name] === undefined ) this.ips[name] = [];
+	},
+
+	addChannel: function( name ) {
+		if ( this.channels[name] === undefined ) this.channels[name] = [];
+	},
+
+	removeChannel: function( name ) {
+		this.channels.remove( name );
 	},
 
 	getGroup: function( name ) {
 		return this.groups[name] || [];
+	},
+
+	getGroupIPs: function( name ) {
+		return this.ips[name] || [];
 	},
 
 	getSourceFromSocket: function( socket ) {
@@ -223,7 +240,7 @@ WebsocketManager = {
 	},
 	storeSocket: function( socket, group ) {
 		var uid = this.getUID( socket );
-
+		var ip = this.getHeaders( socket )[ 'x-forwarded-for' ];
 		// socket is stored already
 		/*if ( this.sockets[ uid ] !== undefined ) {
 			if ( this.debug ) console.log( '[websocket-manager]', 'socket:', uid, 'already exists' );
@@ -251,6 +268,10 @@ WebsocketManager = {
 					this.groups[ group ].remove( uid );
 					this.groups[ group ].push( uid );
 
+					this.ips[ group ].remove( ip );
+					this.ips[ group ].push( ip );
+
+
 					triggerUpdate = true;
 				} else {
 					if ( this.groups[ group ].length < source.limit ) {
@@ -259,6 +280,9 @@ WebsocketManager = {
 						// make sure there's no redundancy 
 						this.groups[ group ].remove( uid );
 						this.groups[ group ].push( uid );
+
+						this.ips[ group ].remove( ip );
+						this.ips[ group ].push( ip );
 
 						triggerUpdate = true;
 					} else {
@@ -270,6 +294,9 @@ WebsocketManager = {
 				// make sure there's no redundancy 
 				this.groups[ group ].remove( uid );
 				this.groups[ group ].push( uid );
+
+				this.ips[ group ].remove( ip );
+				this.ips[ group ].push( ip );
 			}
 
 
@@ -277,12 +304,21 @@ WebsocketManager = {
 			this.sockets[ uid ] = {
 				ws: socket,
 				group: group
-			}
+			};
+
+			this.socketsIP[ ip ] = {
+				ws: socket,
+				group: group
+			};
 
 			if ( triggerUpdate ) this.triggerOnUpdate( source );
 
 		} else {
 			this.sockets[ uid ] = {
+				ws: socket
+			}
+
+			this.socketsIP[ ip ] = {
 				ws: socket
 			}
 		}
@@ -293,28 +329,31 @@ WebsocketManager = {
 
 	removeSocket: function( socket, close, msg ) {
 		var uid = this.getUID( socket );
+		var ip = this.getHeaders( socket )[ 'x-forwarded-for' ];
 
 		// can't find socket ref
 		var obj = this.sockets[ uid ];
 
 		if ( obj === undefined ) return false;
+		var source = false;
 
 		if ( obj.group ) {
 			this.groups[ obj.group ].remove( uid );
+			if ( ip ) this.ips[ obj.group ].remove( ip );
 
-			var source = this.getSource( obj.group );
+			source = this.getSource( obj.group );
 			//source.total--;
 			
-			this.triggerOnUpdate( source );
+			
 		}
 
 		if ( close ) {
 			this.closeSocket( socket, msg );
 		}
 
-
-
 		this.sockets.remove( uid );
+
+		if ( source ) this.triggerOnUpdate( source );
 
 	},
 
@@ -341,6 +380,21 @@ WebsocketManager = {
 		}
 
 		return uid;
+	},
+
+	getHeaders: function( socket ) {
+
+		var headers = {};
+
+		if ( socket.upgradeReq && socket.upgradeReq.headers ) headers = socket.upgradeReq.headers;
+
+		if ( this.debug ) {
+			console.log( '' );
+			console.log( '[websocket-manager]', 'headers:', headers );
+			console.log( '' );
+		}
+
+		return headers;
 	},
 
 	addSource: function( s ) {
@@ -373,6 +427,15 @@ WebsocketManager = {
 		var id;
 		for ( var i = 0, len = this.sources.length; i < len; i++ ) {
 			id = this.sources[i].id || this.sources[i];
+			if ( msg.indexOf( id ) !== -1 ) return id;
+		}
+		return false;
+	},
+
+	validateChannel: function( msg ) {
+		var id;
+		for ( var i = 0, len = this.channels.length; i < len; i++ ) {
+			id = this.channels[i].id || this.channels[i];
 			if ( msg.indexOf( id ) !== -1 ) return id;
 		}
 		return false;
@@ -434,7 +497,7 @@ WebsocketManager = {
 	checkMessage: function( msg, ws, callback ) {
 		//msg = msg.event || msg;
 
-		var validSource = this.validateSource( msg );
+		var validSource = this.validateSource( msg ) || this.validateChannel( msg );
 		var validSocket = this.validateSocket( ws, msg );
 		var connecting = this.checkConnecting( msg );
 
@@ -477,7 +540,7 @@ WebsocketManager = {
 		if ( valid && !connecting ) {
 			var source = this.getSourceFromSocket( ws );
 			if ( source.onmessage ) {
-				source.onmessage( msg, ws, this.getUID( ws )  );
+				source.onmessage( msg, ws, this.getUID( ws ), this.getHeaders( ws )  );
 			}
 		}
 
