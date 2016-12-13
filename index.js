@@ -152,10 +152,14 @@ WebsocketManager = {
 				if ( origin !== this.origin.production ) return false;
 				else return true;
 			} else {
-				if ( origin !== this.origin.local ) return false;
-				else return true;
+				for ( var i = 0; i < this.origin.local.length; i++ ) {
+					if ( origin === this.origin.local[i] ) return true;
+				}
+				return false;
 			}
 		}
+
+		return true;
 
 	},
 
@@ -165,7 +169,7 @@ WebsocketManager = {
 	},
 
 	addRoom: function( config ) {
-		console.log( '++++', '[AddRoom]', config );
+		//console.log( '++++', '[AddRoom]', config );
 		if ( this.rooms[config.id] === undefined ) {
 			this.rooms[config.id] = {};
 			this.roomConfig.push( config );
@@ -174,6 +178,14 @@ WebsocketManager = {
 
 	getRoom: function( name ) {
 		return this.rooms[name] || [];
+	},
+
+	getRoomConfig: function( id ){
+		for ( var i = 0, len = this.roomConfig.length; i < len; i++ ){
+			if ( this.roomConfig[i].id === id ) return this.roomConfig[i];
+		}
+
+		return false;
 	},
 
 	removeRoom: function( name ) {
@@ -292,8 +304,10 @@ WebsocketManager = {
 			if ( valid && this.rooms[ id ] && roomJSON.command === '[Room::Join]' ) {
 				var connect = false;
 				if ( this.rooms[ id ][ roomJSON.name ] === undefined ) {
+
 					connect = true;
 					WebsocketManager.sendString( socket, '[Room Joined] ' + roomJSON.name );
+
 				} else {
 					if ( this.rooms[ id ][ roomJSON.name ].ws.readyState > 1 ) {
 						WebsocketManager.sendString( socket, '[Room Re-Joined] ' + roomJSON.name );
@@ -301,12 +315,25 @@ WebsocketManager = {
 					}
 				}
 
+
+
 				if ( connect ) {
 					this.rooms[ id ][ roomJSON.name ] = {
 						ws: socket,
 						uid: uid,
 						name: roomJSON.name
 					}
+
+					WebsocketManager.roomSendJSON( roomJSON.ruid, {
+						event: '[Room::UserConnected]',
+						name: roomJSON.name
+					}, uid );
+
+					var roomConfig = WebsocketManager.getRoomConfig( roomJSON.ruid );
+					if ( roomConfig ) WebsocketManager.sendJSON( roomConfig.opener, {
+						event: '[Room::UserConnected]',
+						name: roomJSON.name
+					});
 				} else {
 					this.closeSocket( socket, '[Connection Rejected] User exists (' + roomJSON.name + ') in room ' + id );
 				}
@@ -317,7 +344,7 @@ WebsocketManager = {
 
 			//console.log( 'uid:', uid );
 
-			this.sockets[ uid ] = {
+			/*this.sockets[ uid ] = {
 				ws: socket,
 				room: id,
 				group: false
@@ -327,7 +354,7 @@ WebsocketManager = {
 				ws: socket,
 				room: id,
 				group: false
-			};
+			};*/
 
 		} else if ( group ) {
 			var triggerUpdate = false;
@@ -559,7 +586,7 @@ WebsocketManager = {
 		}
 	},
 
-	sendJSON: function( ws, event, data ) {
+	sendJSON: function( ws, event, msg ) {
 		if ( ws.readyState !== 1 ){
 	        setTimeout( function() {
 	          ws.emit( event, msg );
@@ -655,7 +682,14 @@ WebsocketManager = {
 			message: msg
 		}
 
-		if ( res.connecting ) res.stored = socketStored;
+		if ( res.connecting ) {
+			res.stored = socketStored;
+			if ( !isRoom ) {
+				ws.on( 'close', function(){
+					WebsocketManager.removeSocket( ws );
+				});
+			}
+		}
 
 		if ( callback ) {
 			callback( res );
@@ -668,14 +702,41 @@ WebsocketManager = {
 			if ( roomJSON.command === '[Room::Join]' ){
 				
 
-				this.sockets[ uid ].name = roomJSON.name;
+				//this.sockets[ uid ].name = roomJSON.name;
 				//WebsocketManager.sendString( ws, '[Room Joined] ' + name );
 				//console.log("WTF" );
+				var room = this.getRoom( roomJSON.ruid );
+
+				for ( key in room ) {
+					if ( uid === room[key].uid ) {
+						roomJSON.from = room[key].name;
+						break;
+					}
+				}
+
+				ws.on( 'close', function(){
+
+
+					WebsocketManager.roomSendJSON( roomJSON.ruid, {
+						event: '[Room::UserDisconnected]',
+						name: roomJSON.from
+					}, uid );
+
+					var roomConfig = WebsocketManager.getRoomConfig( roomJSON.ruid );
+					if ( roomConfig ) WebsocketManager.sendJSON( roomConfig.opener, {
+						event: '[Room::UserDisconnected]',
+						name: roomJSON.from
+					});
+
+
+				})
+
 			} else if ( roomJSON.command === '[Room::Open]' ) {
 				if ( this.rooms[ room ] === undefined ){
 					this.addRoom({
 						id: roomJSON.ruid,
-						limit: -1 || roomJSON.limit
+						limit: -1 || roomJSON.limit,
+						opener: ws
 					});
 
 					WebsocketManager.sendString( ws, '[Room Opened] ' + roomJSON.ruid );
