@@ -172,6 +172,14 @@ WebsocketManager = {
 		//console.log( '++++', '[AddRoom]', config );
 		if ( this.rooms[config.id] === undefined ) {
 			this.rooms[config.id] = {};
+
+			if ( typeof config.limit === 'object' ){
+				for ( var key in config.limit ) {
+					console.log( key );
+					this.rooms[config.id][key] = {};
+				}
+			};
+
 			this.roomConfig.push( config );
 		}
 	},
@@ -283,57 +291,105 @@ WebsocketManager = {
 		if ( roomJSON ) {
 			var id = roomJSON.ruid;
 			//console.log( roomJSON );
+			var room = this.getRoom( id );
 
-			var config = this.roomConfig[ id ];
+			var config = this.getRoomConfig( id );
 
 			var valid = false;
+			var group = false;
 
-			if ( !config || config.limit === -1 ) {
+			//console.log( 'CONFIG', config );
+			//console.log( typeof config );
+			if ( typeof config !== 'object' && (!config || config.limit === -1  ) ) {
+				//console.log( "WTF" );
 				valid = true;
 			} else {
-				if ( Object.keys( this.rooms[id] ).length < config.limit ) {
-					valid = true;
-				} else {
-					this.closeSocket( socket, '[Connection Rejected] Reached limit(' + config.limit + ') for: ' + config.id );
+				//console.log( "YAY" );
+				//console.log( config );
+				if ( typeof config.limit === 'number' ) {
+					//console.log( 'A' );
+					if ( Object.keys( this.rooms[id] ).length < config.limit ) {
+						valid = true;
+					} else {
+						this.closeSocket( socket, '[Connection Rejected] Reached limit(' + config.limit + ') for: ' + config.id );
+					}
+				} else if ( typeof config.limit === 'object' ) {
+					//console.log( 'B' );
+					if ( roomJSON.config && typeof roomJSON.config.group === 'string'  ) {
+						//console.log( room[ roomJSON.config.group ], config.limit[ roomJSON.config.group ]  );
+						//console.log( Object.keys( room[ roomJSON.config.group ] ).length, config.limit[ roomJSON.config.group ] );
+						if ( config.limit[ roomJSON.config.group ] && Object.keys( room[ roomJSON.config.group ] ).length < config.limit[ roomJSON.config.group ] ){
+							valid = true;
+							group = roomJSON.config.group;
+						}
+					}
 				}
+				
 			}
 
-			//console.log( 'valid', valid );
+			//console.log( 'VALID', valid );
 			//console.log( this.rooms[ id ] );
 
 			if ( valid && this.rooms[ id ] && roomJSON.command === '[Room::Join]' ) {
 				var connect = false;
-				if ( this.rooms[ id ][ roomJSON.name ] === undefined ) {
 
-					connect = true;
-					WebsocketManager.sendString( socket, '[Room Joined] ' + roomJSON.name );
+				if ( group ) {
+					if ( !this.rooms[ id ][ group ][ roomJSON.name ] ) {
 
-				} else {
-					if ( this.rooms[ id ][ roomJSON.name ].ws.readyState > 1 ) {
-						WebsocketManager.sendString( socket, '[Room Re-Joined] ' + roomJSON.name );
 						connect = true;
+						WebsocketManager.sendString( socket, '[Room::Joined] ' + roomJSON.name );
+
+					} else {
+						if ( this.rooms[ id ][ group ][ roomJSON.name ].ws.readyState > 1 ) {
+							WebsocketManager.sendString( socket, '[Room::Rejoined] ' + roomJSON.name );
+							connect = true;
+						}
+					}
+				} else {
+					if ( this.rooms[ id ][ roomJSON.name ] === undefined ) {
+
+						connect = true;
+						WebsocketManager.sendString( socket, '[Room::Joined] ' + roomJSON.name );
+
+					} else {
+						if ( this.rooms[ id ][ roomJSON.name ].ws.readyState > 1 ) {
+							WebsocketManager.sendString( socket, '[Room::Rejoined] ' + roomJSON.name );
+							connect = true;
+						}
 					}
 				}
+				
 
 
 
 				if ( connect ) {
-					this.rooms[ id ][ roomJSON.name ] = {
-						ws: socket,
-						uid: uid,
-						name: roomJSON.name
+					if ( group ) {
+						room[ group ][ roomJSON.name ] = {
+							ws: socket,
+							uid: uid,
+							name: roomJSON.name
+						}
 					}
-
-					WebsocketManager.roomSendJSON( roomJSON.ruid, {
+					if ( room[ roomJSON.name ] === undefined ) {
+						room[ roomJSON.name ] = {
+							ws: socket,
+							uid: uid,
+							name: roomJSON.name
+						}
+					}
+					
+					var jsonData = {
 						event: '[Room::UserConnected]',
 						name: roomJSON.name
-					}, uid );
+					};
+
+					if ( group ) jsonData.group = group;
+
+					WebsocketManager.roomSendJSON( roomJSON.ruid, jsonData, uid );
 
 					var roomConfig = WebsocketManager.getRoomConfig( roomJSON.ruid );
-					if ( roomConfig ) WebsocketManager.sendJSON( roomConfig.opener, {
-						event: '[Room::UserConnected]',
-						name: roomJSON.name
-					});
+					if ( roomConfig ) WebsocketManager.sendJSON( roomConfig.opener, jsonData );
+
 				} else {
 					this.closeSocket( socket, '[Connection Rejected] User exists (' + roomJSON.name + ') in room ' + id );
 				}
@@ -635,8 +691,17 @@ WebsocketManager = {
 			if ( roomJSON.command === '[Room::Join]' ) {
 				if ( roomJSON.name !== undefined ) {
 					var name = roomJSON.name;
+					//console.log( roomJSON );
 					if ( name.indexOf( '%n' ) !== -1 ) {
-						name = name.replace( '%n', ( Object.keys( this.getRoom( roomJSON.ruid ) ).length + 1) );
+
+						if ( roomJSON.config && roomJSON.config.group ) {
+							//console.log( 'GROUP' );
+							//console.log( this.getRoom( roomJSON.ruid )[roomJSON.config.group] );
+							name = name.replace( '%n', ( Object.keys( this.getRoom( roomJSON.ruid )[roomJSON.config.group] ).length + 1) );
+						} else {
+							name = name.replace( '%n', ( Object.keys( this.getRoom( roomJSON.ruid ) ).length + 1) );
+						}
+						
 					}
 					roomJSON.name = name;
 				} else {
@@ -716,6 +781,7 @@ WebsocketManager = {
 
 				ws.on( 'close', function(){
 
+					console.log( roomJSON );
 
 					WebsocketManager.roomSendJSON( roomJSON.ruid, {
 						event: '[Room::UserDisconnected]',
@@ -728,18 +794,31 @@ WebsocketManager = {
 						name: roomJSON.from
 					});
 
+					if ( roomJSON.config && roomJSON.config.group ) {
+						delete room[ roomJSON.config.group ][ roomJSON.name ];
+					}
+
 
 				})
 
 			} else if ( roomJSON.command === '[Room::Open]' ) {
 				if ( this.rooms[ room ] === undefined ){
-					this.addRoom({
+					if ( !roomJSON.options ) roomJSON.options = {};
+					var roomParams = {
 						id: roomJSON.ruid,
-						limit: -1 || roomJSON.limit,
+						config: roomJSON.config || false,
 						opener: ws
-					});
+					};
 
-					WebsocketManager.sendString( ws, '[Room Opened] ' + roomJSON.ruid );
+					if ( roomJSON.config ) {
+						for ( var key in roomJSON.config ) {
+							roomParams[key] = roomJSON.config[key];
+						}
+					}
+
+					this.addRoom(roomParams);
+
+					WebsocketManager.sendString( ws, '[Room::Opened] ' + roomJSON.ruid );
 				}
 			}
 		}
@@ -767,11 +846,20 @@ WebsocketManager = {
 						delete roomJSON.ruid;
 						delete roomJSON.command;
 
+						if ( roomJSON.group ) room = room[roomJSON.group];
+
 						for ( var i = 0, len = names.length; i < len; i++ ) {
 							for ( key in room ) {
-								if ( room[key].name === names[i] ) {
-									this.sendJSON( room[key].ws, roomJSON );
-									break;
+								if ( roomJSON.group ) {
+									if ( room[key].name === names[i] ) {
+										this.sendJSON( room[key].ws, roomJSON );
+										break;
+									}
+								} else {
+									if ( room[key].name === names[i] ) {
+										this.sendJSON( room[key].ws, roomJSON );
+										break;
+									}
 								}
 							}
 						}
