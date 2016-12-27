@@ -319,7 +319,9 @@ WebsocketManager = {
 						//console.log( room[ roomJSON.config.group ], config.limit[ roomJSON.config.group ]  );
 						//console.log( Object.keys( room[ roomJSON.config.group ] ).length, config.limit[ roomJSON.config.group ] );
 						var limit = config.limit[ roomJSON.config.group ];
-						if ( limit !== -1 || limit !== false ) {
+						if ( limit === -1 || limit === false ) {
+							valid = true;
+						} else {
 							if ( config.limit[ roomJSON.config.group ] && Object.keys( room[ roomJSON.config.group ] ).length < limit ){
 								valid = true;
 								group = roomJSON.config.group;
