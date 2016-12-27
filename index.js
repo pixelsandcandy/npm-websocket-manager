@@ -321,6 +321,7 @@ WebsocketManager = {
 						var limit = config.limit[ roomJSON.config.group ];
 						if ( limit === -1 || limit === false ) {
 							valid = true;
+							group = roomJSON.config.group;
 						} else {
 							if ( config.limit[ roomJSON.config.group ] && Object.keys( room[ roomJSON.config.group ] ).length < limit ){
 								valid = true;
@@ -335,22 +336,28 @@ WebsocketManager = {
 			}
 
 			//console.log( 'VALID', valid );
+			//console.log( 'roomJSON >>', roomJSON );
 			//console.log( this.rooms[ id ] );
 
 			if ( valid && this.rooms[ id ] && roomJSON.command === '[Room::Join]' ) {
-				var connect = false;
+				//var connect = false;
+				//console.log( group );
 
 				if ( group ) {
-					if ( !this.rooms[ id ][ group ][ roomJSON.name ] ) {
-
-						connect = true;
-						WebsocketManager.sendString( socket, '[Room::Joined] ' + roomJSON.name );
-
-					} else {
+					//console.log( 1 );
+					if ( this.rooms[ id ][ group ][ roomJSON.name ] ) {
+						//console.log( 'exists',  this.rooms[ id ][ group ][ roomJSON.name ].ws.readyState );
 						if ( this.rooms[ id ][ group ][ roomJSON.name ].ws.readyState > 1 ) {
+							// connection is closed
 							WebsocketManager.sendString( socket, '[Room::Rejoined] ' + roomJSON.name );
 							connect = true;
+						} else {
+							// someone already connected
+
 						}
+					} else {
+						connect = true;
+						WebsocketManager.sendString( socket, '[Room::Joined] ' + roomJSON.name );
 					}
 				} else {
 					if ( this.rooms[ id ][ roomJSON.name ] === undefined ) {
