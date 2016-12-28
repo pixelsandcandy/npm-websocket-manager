@@ -78,11 +78,11 @@ WebsocketManager = {
 			WebsocketManager.wss.clients.forEach(function each( client ) {
 		  		// make sure connection is open otherwise it'll crash
 		    	if ( client.readyState === 1 ) {
-		    		client.send( '[KeepAlive]' );
+		    		client.send( '[Ping]' );
 		    	}
 		  	});
 		} else {
-			WebsocketManager.broadcastString( '[KeepAlive]' );
+			WebsocketManager.broadcastString( '[Ping]' );
 		}
 
 		if ( WebsocketManager.onKeepAlive ) WebsocketManager.onKeepAlive();
