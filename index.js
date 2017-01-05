@@ -186,8 +186,33 @@ WebsocketManager = {
 		}
 	},
 
-	getRoom: function( name ) {
-		return this.rooms[name] || [];
+	getRoom: function( name, simplify ) {
+		if ( simplify !== true ) return this.rooms[name] || [];
+		else {
+			if ( this.rooms[name] ) {
+				var data = [];
+				for ( var key in this.rooms[name].groups ) {
+					var o = {
+						name: key,
+						connections: []
+					};
+
+					var group = this.rooms[name].groups[key];
+
+					for ( var user in group ) {
+						o.connections.push( user );
+					}
+
+					data.push(o);
+				}
+				return data;
+
+			} else {
+				return [];
+			}
+			
+		}
+		
 	},
 
 	getRoomConfig: function( id ){
@@ -401,10 +426,21 @@ WebsocketManager = {
 
 					if ( group ) jsonData.group = group;
 
+					//console.log( roomJSON.ruid );
+
 					WebsocketManager.roomSendJSON( roomJSON.ruid, jsonData, uid );
 
 					var roomConfig = WebsocketManager.getRoomConfig( roomJSON.ruid );
-					if ( roomConfig ) WebsocketManager.sendJSON( roomConfig.opener, jsonData );
+					//console.log( '[Room::UserConnected]' );
+
+					if ( roomConfig ) {
+						WebsocketManager.sendJSON( roomConfig.opener, jsonData );
+						WebsocketManager.sendJSON( roomConfig.opener, {
+							event: '[Room::Update]',
+							groups: WebsocketManager.getRoom( roomJSON.ruid, true )
+						});
+						//console.log( 'roomConfig.opener' );
+					}
 
 				} else {
 					this.closeSocket( socket, '[Connection Rejected] User exists (' + roomJSON.name + ') in room ' + id );
@@ -821,6 +857,13 @@ WebsocketManager = {
 						if ( room[ roomJSON.ruid ].sockets[ roomJSON.name ] ) delete room[ roomJSON.ruid ].sockets[ roomJSON.name ];
 					}
 
+					if ( roomConfig ) {
+						WebsocketManager.sendJSON( roomConfig.opener, {
+							event: '[Room::Update]',
+							groups: WebsocketManager.getRoom( roomJSON.ruid, true )
+						});
+					}
+
 
 				})
 
@@ -842,6 +885,10 @@ WebsocketManager = {
 					this.addRoom(roomParams);
 
 					WebsocketManager.sendString( ws, '[Room::Opened] ' + roomJSON.ruid );
+					WebsocketManager.sendJSON( ws, {
+						event: '[Room::Update]',
+						groups: WebsocketManager.getRoom( roomJSON.ruid, true )
+					});
 				}
 			}
 		}
