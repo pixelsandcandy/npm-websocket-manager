@@ -183,6 +183,9 @@ WebsocketManager = {
 			}
 
 			this.roomConfig.push( config );
+		} else {
+			var c = this.getRoomConfig( config.id );
+			c.opener = config.opener;
 		}
 	},
 
@@ -896,8 +899,12 @@ WebsocketManager = {
 
 		if ( valid && !connecting ) {
 			if ( isRoom ) {
-				if ( roomJSON.command === '[Room::Emit]'){
-
+				if ( roomJSON.command === '[Room::GetConnections]'){
+					WebsocketManager.sendJSON( ws, {
+						event: '[Room::Connections]',
+						groups: WebsocketManager.getRoom( roomJSON.ruid, true )
+					});
+				} else if ( roomJSON.command === '[Room::Emit]'){
 					var room = this.getRoom( roomJSON.ruid );
 
 					for ( key in room ) {
