@@ -906,10 +906,10 @@ WebsocketManager = {
 					});
 				} else if ( roomJSON.command === '[Room::Emit]'){
 					var room = this.getRoom( roomJSON.ruid );
-
-					for ( key in room ) {
-						if ( uid === room[key].uid ) {
-							roomJSON.from = room[key].name;
+					
+					for ( key in room.sockets ) {
+						if ( uid === room.sockets[key].uid ) {
+							roomJSON.from = room.sockets[key].name;
 							break;
 						}
 					}

@@ -1,6 +1,6 @@
 {
   "name": "websocket-manager",
-  "version": "1.0.72",
+  "version": "1.0.73",
   "description": "For managing internal and external Websocket connections",
   "main": "index.js",
   "scripts": {
