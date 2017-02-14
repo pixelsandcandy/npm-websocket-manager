@@ -758,24 +758,29 @@ WebsocketManager = {
 					if ( name.indexOf( '%n' ) !== -1 ) {
 
 						var room = this.getRoom( roomJSON.ruid );
-
-						if ( roomJSON.config && roomJSON.config.group && room.groups && room.groups[ roomJSON.config.group ] ) {
+						//console.log( room.groups, room.groups[ roomJSON.config.group] );
+						if ( roomJSON.config && roomJSON.config.group && room.groups != undefined && room.groups[ roomJSON.config.group ] != undefined ) {
 							//console.log( 'GROUP' );
 							//console.log( this.getRoom( roomJSON.ruid )[roomJSON.config.group] );
 							name = name.replace( '%n', ( Object.keys( room.groups[roomJSON.config.group] ).length + 1) );
 							validRoomMessage = true;
-						} else if ( room.sockets ) {
+						} else if ( room.sockets != undefined ) {
 							name = name.replace( '%n', ( Object.keys( room.sockets ).length + 1) );
 							validRoomMessage = true;
 						}
 						
+					} else {
+						validRoomMessage = true;
 					}
+
 					roomJSON.name = name;
 				} else {
 					var name = 'anonymous-' + ( Object.keys( this.getRoom( roomJSON.ruid ) ).length + 1);
 					roomJSON.name = name;
 					validRoomMessage = true;
 				}
+			} else {
+				validRoomMessage = true;
 			}
 		}
 
