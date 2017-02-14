@@ -743,6 +743,9 @@ WebsocketManager = {
 
 		var isRoom = false;
 		var roomJSON = false;
+		var valid = false;
+		var validRoomMessage = false;
+
 		if ( msg.indexOf( '[Room::' ) !== -1 ) isRoom = true;
 
 		if ( isRoom ) {
@@ -754,12 +757,16 @@ WebsocketManager = {
 					//console.log( roomJSON );
 					if ( name.indexOf( '%n' ) !== -1 ) {
 
-						if ( roomJSON.config && roomJSON.config.group ) {
+						var room = this.getRoom( roomJSON.ruid );
+
+						if ( roomJSON.config && roomJSON.config.group && room.groups && room.groups[ roomJSON.config.group ] ) {
 							//console.log( 'GROUP' );
 							//console.log( this.getRoom( roomJSON.ruid )[roomJSON.config.group] );
-							name = name.replace( '%n', ( Object.keys( this.getRoom( roomJSON.ruid ).groups[roomJSON.config.group] ).length + 1) );
-						} else {
-							name = name.replace( '%n', ( Object.keys( this.getRoom( roomJSON.ruid ).sockets ).length + 1) );
+							name = name.replace( '%n', ( Object.keys( room.groups[roomJSON.config.group] ).length + 1) );
+							validRoomMessage = true;
+						} else if ( room.sockets ) {
+							name = name.replace( '%n', ( Object.keys( room.sockets ).length + 1) );
+							validRoomMessage = true;
 						}
 						
 					}
@@ -767,6 +774,7 @@ WebsocketManager = {
 				} else {
 					var name = 'anonymous-' + ( Object.keys( this.getRoom( roomJSON.ruid ) ).length + 1);
 					roomJSON.name = name;
+					validRoomMessage = true;
 				}
 			}
 		}
@@ -779,7 +787,8 @@ WebsocketManager = {
 		//console.log( this.validateRoom( msg ) );
 		//console.log( this.validateSource( msg ) );
 
-		var valid = false;
+
+		
 
 		var socketStored = false;
 
@@ -796,6 +805,8 @@ WebsocketManager = {
 		} else {
 			if ( validSocket ) valid = true;
 		}
+
+		if ( isRoom && !validRoomMessage ) valid = false;
 		
 
 		var res = {
