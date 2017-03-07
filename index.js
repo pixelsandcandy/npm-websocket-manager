@@ -666,7 +666,7 @@ WebsocketManager = {
 	groupSendJSON: function( group, event, data ) {
 		var g = this.getGroup( group );
 		var uid;
-		for ( var i = 0, len = group.length; i < len; i++ ) {
+		for ( var i = 0, len = g.length; i < len; i++ ) {
 			uid = g[ i ];
 			if ( this.sockets[uid] && this.sockets[uid].ws ) this.sendJSON( this.sockets[uid].ws, event, data );
 		}
@@ -675,7 +675,7 @@ WebsocketManager = {
 	groupSendString: function( group, str ) {
 		var g = this.getGroup( group ).sockets;
 		var uid;
-		for ( var i = 0, len = group.length; i < len; i++ ) {
+		for ( var i = 0, len = g.length; i < len; i++ ) {
 			uid = g[ i ];
 			if ( this.sockets[uid] && this.sockets[uid].ws ) this.sendString( this.sockets[uid].ws, str );
 		}
@@ -940,23 +940,31 @@ WebsocketManager = {
 							delete roomJSON.ruid;
 							delete roomJSON.command;
 
-							if ( roomJSON.group ) room = room.groups[roomJSON.group];
-
-							for ( var i = 0, len = names.length; i < len; i++ ) {
-								for ( var key in room ) {
-									if ( roomJSON.group ) {
-										if ( room[key].name === names[i] ) {
-											this.sendJSON( room[key].ws, roomJSON );
-											break;
-										}
-									} else {
-										if ( room[key].name === names[i] ) {
-											this.sendJSON( room[key].ws, roomJSON );
-											break;
+							if ( roomJSON.group ) {
+								if ( room.groups == undefined || room.groups[ roomJSON.group ] == undefined ) {
+									valid = false;
+								} else {
+									room = room.groups[roomJSON.group];
+								}
+							}
+							if ( valid ) {
+								for ( var i = 0, len = names.length; i < len; i++ ) {
+									for ( var key in room ) {
+										if ( roomJSON.group ) {
+											if ( room[key].name === names[i] ) {
+												this.sendJSON( room[key].ws, roomJSON );
+												break;
+											}
+										} else {
+											if ( room[key].name === names[i] ) {
+												this.sendJSON( room[key].ws, roomJSON );
+												break;
+											}
 										}
 									}
 								}
 							}
+							
 						} else if ( typeof roomJSON.to === 'object' ){
 							//console.log( 'EMIT', roomJSON );
 							var group = roomJSON.to.group;
@@ -970,9 +978,14 @@ WebsocketManager = {
 								delete roomJSON.command;
 
 								for ( var i = 0, len = groups.length; i < len; i++ ){
-									room = this.getRoom( ruid ).groups[ groups[i] ];
-									for ( var key in room ) {
-										this.sendJSON( room[key].ws, roomJSON );
+									room = this.getRoom( ruid );
+									if ( room.groups == undefined || room.groups[ groups[i] == undefined ]){
+										valid = false;
+									} else {
+										room = room.groups[ groups[i] ];
+										for ( var key in room ) {
+											this.sendJSON( room[key].ws, roomJSON );
+										}
 									}
 								}
 							}
