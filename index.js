@@ -256,7 +256,7 @@ WebsocketManager = {
   wss: null,
   validSockets: {},
   pingInt: null,
-
+  listeners: {},
   ////////////////////////////////////////////////////////////////////// methods
 
   /*
@@ -286,6 +286,12 @@ WebsocketManager = {
     }catch(e){
       return false;
     }
+  },
+  On: function(event, cb){
+    this.listeners[event] = cb;
+  },
+  Trigger: function(event, data){
+    if ( this.listeners[event] != undefined ) this.listeners[event](data);
   },
   ParseRequest: function(request){
     //console.log( request );
@@ -319,6 +325,12 @@ WebsocketManager = {
           success: true,
           uid: uid
         });
+      } else if ( msg.request == 'wsm:manager' ){
+        this.Trigger('wsm:manager', {
+          socket: request.GetSocket(),
+          uid: uid,
+          message: msg.message
+        })
       } else if ( msg.request == 'listen:connections:room' ){
 
         if ( this.validSockets[uid].group ) {
