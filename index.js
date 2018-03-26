@@ -298,7 +298,7 @@ WebsocketManager = {
     if ( request.message === 'pong' ) return;
 
     if ( this._debug ) console.log( request.GetUID() + " <=", request.message );
-
+    
     var socket = request.GetSocket();
     var uid = request.GetUID();
 
@@ -447,6 +447,12 @@ WebsocketManager = {
     });
 
     if ( this._debug ) console.log( 'added socket:', uid );
+
+    this.Trigger(this.config.acceptMessage, {
+      message: this.config.acceptMessage,
+      uid: uid
+    });
+
     this.ParseRequest(request);
   },
   RejectRequest: function(request){
@@ -456,15 +462,28 @@ WebsocketManager = {
       message: this.config.rejectMessage
     });
 
+    this.Trigger(this.config.rejectMessage, {
+      message: this.config.rejectMessage,
+      uid: uid
+    });
+
     request.GetSocket().onclose = function(){};
 		request.GetSocket().close();
   },
   RemoveSocket: function(socket){
     var uid = SocketUtils.GetUID(socket);
     if ( this.validSockets[uid] !== undefined ) {
+
+       var closedData = {
+        uid: uid
+      };
+
       if ( this.validSockets[uid].group ){
+        closedData.group = this.validSockets[uid].group.name;
         this.validSockets[uid].group.RemoveSocket(socket);
       }
+
+      this.Trigger('connection:closed', closedData );
 
       for ( var i = 0, len = this.validSockets[uid].listeningTo.length; i < len; i++ ){
         this.validSockets[uid].listeningTo[i].RemoveListener(socket);
@@ -555,7 +574,7 @@ WebsocketManager = {
     }
 
     var host = request.GetHost();
-    //console.log( host );
+    //console.log( 'ValidateRequest:', host );
 
     if ( this.config['whitelist_'+this.config.env] != undefined ){
       for ( var i in this.config['whitelist_'+this.config.env] ){
