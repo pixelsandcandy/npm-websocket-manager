@@ -1,11 +1,11 @@
 /*
-	WebsocketManager
-	==============================================================
-	For managing internal and external websocket connections.
+  WebsocketManager
+  ==============================================================
+  For managing internal and external websocket connections.
 
 
-	Author: Christopher Miles
-	Site: www.christophermil.es
+  Author: Christopher Miles
+  Site: www.christophermil.es
 
 */
 
@@ -41,33 +41,33 @@ var SocketUtils = {
   GetUID: function(socket){
     var uid = '-';
 
-		//if ( socket.upgradeReq && socket.upgradeReq.headers && socket.upgradeReq.headers['sec-websocket-key'] ) uid = socket.upgradeReq.headers['sec-websocket-key'];
-		//if ( socket.upgradeReq && socket.upgradeReq.IncomingMessage && socket.upgradeReq.IncomingMessage._writableState && socket.upgradeReq.IncomingMessage._writableState['sec-websocket-key'] ) uid = socket.upgradeReq.IncomingMessage._writableState['sec-websocket-key'];
-		var s;
-		if ( socket.upgradeReq ) {
-			s = socket.upgradeReq;
+    //if ( socket.upgradeReq && socket.upgradeReq.headers && socket.upgradeReq.headers['sec-websocket-key'] ) uid = socket.upgradeReq.headers['sec-websocket-key'];
+    //if ( socket.upgradeReq && socket.upgradeReq.IncomingMessage && socket.upgradeReq.IncomingMessage._writableState && socket.upgradeReq.IncomingMessage._writableState['sec-websocket-key'] ) uid = socket.upgradeReq.IncomingMessage._writableState['sec-websocket-key'];
+    var s;
+    if ( socket.upgradeReq ) {
+      s = socket.upgradeReq;
 
-			if ( s && s.headers && s.headers['x-request-id'] ) uid = s.headers['x-request-id'];
-			if ( s && s.headers && s.headers['sec-websocket-key'] ) uid = s.headers['sec-websocket-key'];
-			else if ( s && s.IncomingMessage && s.IncomingMessage._writableState && s.IncomingMessage._writableState['x-request-id'] ) uid = socket.upgradeReq.IncomingMessage._writableState['x-request-id'];
-		}
+      if ( s && s.headers && s.headers['x-request-id'] ) uid = s.headers['x-request-id'];
+      if ( s && s.headers && s.headers['sec-websocket-key'] ) uid = s.headers['sec-websocket-key'];
+      else if ( s && s.IncomingMessage && s.IncomingMessage._writableState && s.IncomingMessage._writableState['x-request-id'] ) uid = socket.upgradeReq.IncomingMessage._writableState['x-request-id'];
+    }
 
-		if ( this.debug ) {
-			console.log( '' );
-			console.log( '[websocket-manager]', 'uid:', uid );
-			console.log( '' );
-		}
+    if ( this.debug ) {
+      console.log( '' );
+      console.log( '[websocket-manager]', 'uid:', uid );
+      console.log( '' );
+    }
 
-		//console.log( socket.upgradeReq );
+    //console.log( socket.upgradeReq );
 
-		return uid;
+    return uid;
   },
   GetHeaders: function(socket){
     var headers = {};
 
-		if ( socket.upgradeReq && socket.upgradeReq.headers ) headers = socket.upgradeReq.headers;
+    if ( socket.upgradeReq && socket.upgradeReq.headers ) headers = socket.upgradeReq.headers;
 
-		return headers;
+    return headers;
   }
 }
 
@@ -241,7 +241,7 @@ Group.prototype = {
 
 WebsocketManager = {
   ////////////////////////////////////////////////////////////////////// vars
-	config: {
+  config: {
     externalKey: -1,
     env: 'dev',
     whitelist_dev: [],
@@ -401,7 +401,9 @@ WebsocketManager = {
         this.Emit( ws[i], event, msg );
       }
     } else {
-      if ( this._debug ) console.log( SocketUtils.GetUID(ws), '====>', event, msg );
+      if ( this._debug ) {
+        console.log( SocketUtils.GetUID(ws), '====>', event, msg );
+      }
 
       if ( ws.readyState !== 1 ){
         setTimeout( function() {
@@ -468,7 +470,7 @@ WebsocketManager = {
     });
 
     request.GetSocket().onclose = function(){};
-		request.GetSocket().close();
+    request.GetSocket().close();
   },
   RemoveSocket: function(socket){
     var uid = SocketUtils.GetUID(socket);
@@ -536,7 +538,7 @@ WebsocketManager = {
     this.keepAliveInt = i;
   },
   Setup: function(config){
-    var keys = Object.keys(this.config);
+    var keys = Object.keys(config);
 
     for ( var i in keys ){
       this.config[keys[i]] = config[keys[i]];
@@ -549,7 +551,7 @@ WebsocketManager = {
   },
   Ping: function(){
     //if ( this._debug ) console.log( 'ping-pong', new Date() );
-
+    //console.log( this.config, WebsocketManager.config );
     var s = Object.keys(this.validSockets);
     for ( var i = 0, len = s.length; i<len; i++){
       this.Emit( this.validSockets[s[i]].socket, this.config.pingMessage );
