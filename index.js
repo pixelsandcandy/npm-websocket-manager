@@ -244,14 +244,15 @@ WebsocketManager = {
   config: {
     externalKey: -1,
     env: 'dev',
-    whitelist_dev: [],
+    /*whitelist_dev: [],
     whitelist_staging: [],
-    whitelist_production: [],
+    whitelist_production: [],*/
     keepAliveInt: 15000,
     autoReconnect: true,
     pingMessage: 'ping',
     acceptMessage: '[accepted]',
-    rejectMessage: '[rejected]'
+    rejectMessage: '[rejected]',
+    allowLocalhost: false
   },
   wss: null,
   validSockets: {},
@@ -577,7 +578,15 @@ WebsocketManager = {
 
     var host = request.GetHost();
     //console.log( 'ValidateRequest:', host );
-
+    
+    if ( this.config['ip'] != undefined ){
+      if ( this.config['ip'] == host ) return request.Accept();
+    }
+    
+    if ( this.config.allowLocalhost === true ) {
+      if ( host.indexOf('localhost:') !== -1 ) return request.Accept();
+    }
+    
     if ( this.config['whitelist_'+this.config.env] != undefined ){
       for ( var i in this.config['whitelist_'+this.config.env] ){
         if ( host == this.config['whitelist_'+this.config.env][i] ) return request.Accept();
