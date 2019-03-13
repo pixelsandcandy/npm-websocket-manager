@@ -18,6 +18,25 @@ function isJSON( str ) {
     return true;
 }
 
+function parseJSON( str ) {
+    try {
+        JSON.parse(str);
+    } catch (e) {
+        return str;
+    }
+    return JSON.parse(str);
+}
+
+function stringify( str ) {
+   if ( typeof str == '')
+    try {
+        JSON.parse(str);
+    } catch (e) {
+        return str;
+    }
+    return JSON.parse(str);
+}
+
 Array.prototype.remove = function() {
     var what, a = arguments, L = a.length, ax;
     while (L && this.length) {
@@ -280,10 +299,10 @@ WebsocketManager = {
     try{
       for ( var i = 0, len = gArr.length; i < len; i++){
         g = l.GetGroup(gArr[i]);
-        if ( g === false ) return false;
+        if ( g !== false ) return g;
       }
 
-      return g;
+      return false;
     }catch(e){
       return false;
     }
@@ -299,7 +318,7 @@ WebsocketManager = {
     if ( request.message === 'pong' ) return;
 
     if ( this._debug ) console.log( request.GetUID() + " <=", request.message );
-    
+
     var socket = request.GetSocket();
     var uid = request.GetUID();
 
@@ -370,20 +389,42 @@ WebsocketManager = {
         if ( this.validSockets[uid].group ) {
           this.Emit( this.validSockets[uid].group.GetRoomSockets(), this.ConcatEmitMessage(msg,uid) );
         }
+
+        this.Trigger(msg.request, msg );
       } else if ( msg.request === 'emit' ){
         if ( this.validSockets[uid].group ) {
           this.Emit( this.validSockets[uid].group.GetSockets(), this.ConcatEmitMessage(msg,uid) );
         }
+
+        this.Trigger(msg.request, msg );
+      } else if ( msg.request === 'emit:wsm:all' ){
+        var keys = Object.keys(this.validSockets);
+
+        for ( var i = 0, len = keys.length; i < len; i++ ){
+          this.Emit( this.validSockets[keys[i]].socket, this.ConcatEmitMessage(msg,keys[i]) );
+        }
+
+        this.Trigger(msg.request, msg );
       } else if ( msg.request.indexOf('emit:' ) != -1 ) {
         var cmd = msg.request.split('emit:')[1];
 
         var group = this.FindGroup(cmd);
+
         if ( group !== false ){
           this.Emit( group.GetSockets(), this.ConcatEmitMessage(msg,uid) );
         }
+
+        this.Trigger(msg.request, msg );
+
       } else if ( msg.request.indexOf('to:') != -1 ){
         var cmd = msg.request.split('to:')[1];
-        if ( this.validSockets[cmd] ) this.Emit( this.validSockets[cmd].socket, this.ConcatEmitMessage(msg,uid) );
+
+        if ( this.validSockets[cmd] ) {
+          m = this.ConcatEmitMessage(msg,uid);
+          this.Emit( this.validSockets[cmd].socket, m );
+        }
+
+        this.Trigger(msg.request, msg );
       }
     }
   },
@@ -391,8 +432,10 @@ WebsocketManager = {
     var m = {};
 
     m = msg;
+    if ( m.message != undefined ) m.message = parseJSON(m.message);
+
     delete m.request;
-    m.from = uid;
+    if (m.from === undefined) m.from = uid;
 
     return m;
   },
@@ -578,15 +621,15 @@ WebsocketManager = {
 
     var host = request.GetHost();
     //console.log( 'ValidateRequest:', host );
-    
+
     if ( this.config['ip'] != undefined ){
       if ( this.config['ip'] == host ) return request.Accept();
     }
-    
+
     if ( this.config.allowLocalhost === true ) {
       if ( host.indexOf('localhost:') !== -1 ) return request.Accept();
     }
-    
+
     if ( this.config['whitelist_'+this.config.env] != undefined ){
       for ( var i in this.config['whitelist_'+this.config.env] ){
         if ( host == this.config['whitelist_'+this.config.env][i] ) return request.Accept();
@@ -595,6 +638,8 @@ WebsocketManager = {
 
     if ( this.config.externalKey !== -1 ) {
       if ( request.message.indexOf(this.config.externalKey) !== -1 ) return request.Accept();
+    } else {
+      return request.Accept();
     }
 
     if ( !request.accepted ) this.ValidateRequest( request );
