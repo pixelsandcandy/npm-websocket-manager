@@ -48,6 +48,14 @@ Array.prototype.remove = function() {
     return this;
 };
 
+function generateUID() {
+    var firstPart = (Math.random() * 46656) | 0;
+    var secondPart = (Math.random() * 46656) | 0;
+    firstPart = ("000" + firstPart.toString(36)).slice(-3);
+    secondPart = ("000" + secondPart.toString(36)).slice(-3);
+    return firstPart + secondPart;
+}
+
 var SocketUtils = {
   GetUserAgent: function(socket){
     if ( socket.upgradeReq && socket.upgradeReq.headers ) return socket.upgradeReq.headers['user-agent'];
@@ -69,12 +77,18 @@ var SocketUtils = {
       if ( s && s.headers && s.headers['x-request-id'] ) uid = s.headers['x-request-id'];
       if ( s && s.headers && s.headers['sec-websocket-key'] ) uid = s.headers['sec-websocket-key'];
       else if ( s && s.IncomingMessage && s.IncomingMessage._writableState && s.IncomingMessage._writableState['x-request-id'] ) uid = socket.upgradeReq.IncomingMessage._writableState['x-request-id'];
+    } else if ( socket.uid ){
+      uid = socket.uid;
     }
 
     if ( this.debug ) {
       console.log( '' );
       console.log( '[websocket-manager]', 'uid:', uid );
       console.log( '' );
+    }
+
+    if ( uid == '-' ){
+      socket.uid = generateUID() + '-' + generateUID() + '-' + generateUID() + '-' + generateUID();
     }
 
     //console.log( socket.upgradeReq );
@@ -324,9 +338,11 @@ WebsocketManager = {
 
     if ( isJSON(request.message) ){
       var msg = JSON.parse(request.message);
-      if ( this._debug ) console.log( msg );
+      if ( this._debug ) console.log( "JSON", msg );
       if ( msg.request === undefined ) return;
       if ( msg.request.indexOf('join:') != -1 ){
+
+
         var cmd = msg.request.split('join:')[1];
         var group = this.FindGroup(cmd);
         if ( group !== false ){
@@ -338,7 +354,11 @@ WebsocketManager = {
             success: true,
             uid: uid
           });
+
         }
+
+        this.Trigger(msg.request, {message: msg, socket: request.GetSocket()} );
+
       } else if ( msg.request == 'get:uid' ){
         this.Emit( socket, {
           request: msg.request,
@@ -386,26 +406,32 @@ WebsocketManager = {
           });
         }
       } else if ( msg.request === 'emit:room' ){
+        this.Trigger(msg.request, msg );
+
         if ( this.validSockets[uid].group ) {
           this.Emit( this.validSockets[uid].group.GetRoomSockets(), this.ConcatEmitMessage(msg,uid) );
         }
 
-        this.Trigger(msg.request, msg );
+
       } else if ( msg.request === 'emit' ){
+        this.Trigger(msg.request, msg );
+
         if ( this.validSockets[uid].group ) {
           this.Emit( this.validSockets[uid].group.GetSockets(), this.ConcatEmitMessage(msg,uid) );
         }
 
-        this.Trigger(msg.request, msg );
       } else if ( msg.request === 'emit:wsm:all' ){
+        this.Trigger(msg.request, msg );
+
         var keys = Object.keys(this.validSockets);
 
         for ( var i = 0, len = keys.length; i < len; i++ ){
           this.Emit( this.validSockets[keys[i]].socket, this.ConcatEmitMessage(msg,keys[i]) );
         }
 
-        this.Trigger(msg.request, msg );
       } else if ( msg.request.indexOf('emit:' ) != -1 ) {
+        this.Trigger(msg.request, msg );
+
         var cmd = msg.request.split('emit:')[1];
 
         var group = this.FindGroup(cmd);
@@ -413,10 +439,9 @@ WebsocketManager = {
         if ( group !== false ){
           this.Emit( group.GetSockets(), this.ConcatEmitMessage(msg,uid) );
         }
-
+      } else if ( msg.request.indexOf('to:') != -1 ){
         this.Trigger(msg.request, msg );
 
-      } else if ( msg.request.indexOf('to:') != -1 ){
         var cmd = msg.request.split('to:')[1];
 
         if ( this.validSockets[cmd] ) {
@@ -424,7 +449,6 @@ WebsocketManager = {
           this.Emit( this.validSockets[cmd].socket, m );
         }
 
-        this.Trigger(msg.request, msg );
       }
     }
   },
@@ -564,7 +588,7 @@ WebsocketManager = {
     var self = this;
 
     wss.on( 'connection', function(ws){
-
+      if ( this._debug ) console.log( 'connected...' );
 
       ws.onclose = function(evt){
         self.RemoveSocket(ws);
